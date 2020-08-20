@@ -19,7 +19,7 @@
 
   // call slack hook
 
-  $uri = 'https://hooks.slack.com/services/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';
+  $uri = 'https://hooks.slack.com/services/...';
 
   $data = json_encode(array('text' => $payload));
 
