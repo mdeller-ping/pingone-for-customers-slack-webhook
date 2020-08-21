@@ -1,37 +1,57 @@
 <?php
 
-  // set content type to json as we pretend to be a REST API
+  // we're an API, so content type should be application/json
 
   header('Content-Type: application/json');
+
+  // library that makes outbound REST calls easier
+
   include ("httpful.phar");
 
-  // receive payload from caller
+  // your slack webhook url
+
+  $uri = 'https://hooks.slack.com/services/xxx';
+
+  // receive payload from the PingOne for Customers caller
 
   $method = $_SERVER['REQUEST_METHOD'];
-  $request = explode('/', trim($_SERVER['PATH_INFO'],'/'));
   $input = file_get_contents('php://input');
   $response = json_decode($input);
-  $base64 = base64_encode( $input );
+  $base64 = base64_encode( $input ); // for possible attaching whole payload to slack webhook.  helpful for debug
 
-  // my chance to see the payload
+  // how big is the payload?
 
-  $payload = $response[0]->result->description;
+  $sizeOf = count($input);
 
-  // call slack hook
+  // sometimes the inbound webhook has multiple record
 
-  $uri = 'https://hooks.slack.com/services/...';
+  for ($x = 0; $x < $sizeOf; $x++) {
 
-  $data = json_encode(array('text' => $payload));
+    // parse out some human readable stuff
 
-  // // // echo $data;
+    $description = $response[$x]->result->description;
+    $action = $response[$x]->action->type;
 
-  // // // echo json_decode($data);
+    // in case a value is null
 
-  $response = \Httpful\Request::post($uri)
-    ->sendsJson()
-    ->body($data)
-    ->send();
+    $description = isset($description) ? $description : 'null';
+    $action = isset($action) ? $action : 'null';
 
-  // echo json_decode($response);
+    // form a sentence
+
+    $payload = 'Action: ' . $action . '; Desc: ' . $description;
+
+    // encode the payload for slack
+
+    $data = json_encode(array('text' => $payload));
+
+    // $data = json_encode(array('text' => $base64)); // helpful for debug
+    
+    $response = \Httpful\Request::post($uri)
+      ->sendsJson()
+      ->body($data)
+      ->send();
+
+  }
 
 ?>
